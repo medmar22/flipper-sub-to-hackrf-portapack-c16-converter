@@ -1,135 +1,187 @@
 # .sub, .wav, .iq, .bin to .c16 Converter for HackRF PortaPack (not currently working)
 
-Made by RockGod, trying to be fixed by "me" (gpt 4O). This project contains a Python script that helps convert .sub (and possibily .wav, .iq, .bin)  files (Flipper SubGhz RAW File) to .c16 files for use with HackRF PortaPack. This project is a fork from broken code and has been fixed and improved. I fixed this using chatgpt, I know nothing. Supports two protocols: RAW and BinRAW.
+Made by RockGod, trying to be fixed by "me" (AI). This project contains a Python script that helps convert .sub (and possibily .wav, .iq, .bin)  files (Flipper SubGhz RAW File) to .c16 files for use with HackRF PortaPack. This project is a fork from broken code and has been fixed and improved. I fixed this using chatgpt, I know nothing. Supports two protocols: RAW and BinRAW.
 
-## What You Need
+# Signal File Converter (SUB/WAV/IQ/BIN to C16)
 
-- A computer with Python installed. 
-- The NumPy library for Python. (This library helps with math operations.)
+This Python script converts various signal file formats into the interleaved 16-bit integer IQ format (.c16) commonly used by Software Defined Radios (SDRs) like HackRF, along with a corresponding metadata text file (.txt).
 
-## Steps to Get Ready
+## Overview
 
-### 1. Install Python
+The primary goal is to take signal data, which might be represented as timing durations (like in Flipper Zero .sub files) or raw samples (like in WAV, IQ, or BIN files), and transform it into a standard complex baseband IQ representation suitable for transmission or analysis tools that expect the C16 format.
 
-If you don't have Python, you can download and install it from [python.org](https://www.python.org/).
+## Features
 
-### 2. Install NumPy
+*   **Multiple Input Formats:** Supports conversion from:
+    *   `.sub` (Flipper Zero RAW SubGhz files)
+    *   `.wav` (Mono, 16-bit PCM audio files)
+    *   `.iq` (Raw interleaved int16 IQ sample files)
+    *   `.bin` (Raw interleaved uint8 IQ sample files)
+*   **Standard Output:** Generates:
+    *   `.c16` files: Interleaved 16-bit signed integer, Little-Endian complex IQ data (I0, Q0, I1, Q1, ...).
+    *   `.txt` files: Metadata containing sample rate and center frequency.
+*   **Flexible Parameters:** Allows manual specification of Sampling Rate, Center Frequency, Intermediate Frequency (for `.sub`), and Amplitude (for `.sub`).
+*   **Auto-Detection:** Can attempt to auto-detect parameters like sampling rate (from WAV headers) or frequency (from `.sub` metadata), falling back to sensible defaults.
+*   **Batch Processing:** Can process all supported files within a specified directory.
+*   **Verbose Output:** Optional verbose logging for debugging.
 
-Open a command prompt or terminal on your computer and type the following:
+## Supported Formats
 
-```sh
-pip install numpy
-```
-This command installs NumPy for Python.
+*   **Input:**
+    *   `.sub`: Flipper Zero RAW protocol files containing positive/negative pulse durations in microseconds. *Assumes `RAW_Data:` format.*
+    *   `.wav`: Standard RIFF WAVE files. *Requires mono, 16-bit Signed Integer PCM format.*
+    *   `.iq`: Raw binary files containing interleaved 16-bit signed integers (I, Q, I, Q...). *Assumes Little-Endian.*
+    *   `.bin`: Raw binary files containing interleaved 8-bit unsigned integers (I, Q, I, Q...). *Assumes data centered around 128.*
+*   **Output:**
+    *   `.c16`: Raw binary file of interleaved `int16` (Little-Endian) IQ samples.
+    *   `.txt`: Plain text metadata file (key = value format).
 
-### How to Use the Script
+## Installation
 
-Get Your Files Ready
+1.  **Python:** Requires Python 3.6 or later.
+2.  **Dependencies:** Needs the `numpy` library.
+    ```bash
+    pip install numpy
+    ```
+    (Other libraries used like `os`, `argparse`, `math`, `wave`, `logging`, `sys`, `typing` are typically included with Python).
 
-Make sure you have files in one of the supported formats: .sub, .wav, .iq, or .bin. These are the files you want to convert.
+## Usage
 
-### How To Run the Script
-Open the command prompt or terminal on your computer.
-
-Go to the folder where you saved the script. For example, if it's saved in C:\Users\YourName\Documents, type:
-
-```sh
-cd C:\Users\YourName\Documents
-```
-Now, run the script with the following command:
-
-```sh
-python sdr_converter.py "input_file.sub" -o "output_file" --auto -v
-```
-## Important Parameters
-
-### Automatic Parameter Detection:
-
-Use the --auto flag to automatically detect and suggest appropriate parameters.
-
-Example:
-```sh
-python sdr_converter.py "input_file.sub" -o "output_file" --auto -v
-```
-### Manual Parameters:
-
-Sample Rate (-sr): Sets the sample rate to a specific value.
-```sh
-python sdr_converter.py "input_file.sub" -o "output_file" -sr 500000
-```
-Intermediate Frequency (-if): Sets the intermediate frequency.
-```sh
-python sdr_converter.py "input_file.sub" -o "output_file" -if 5000
-```
-
-Amplitude (-a): Sets the amplitude percentage.
-```sh
-python sdr_converter.py "input_file.sub" -o "output_file" -a 100
-```
-
-## What the Commands Do
-python sdr_converter.py runs the script.
-
-your_signal.sub is the name of the file you want to convert.
-
--o output_file tells the script to save the new files with the name output_file.
-
--sr 500000 sets the sample rate to 500,000 samples per second.
-
--if 5000 sets the intermediate frequency to 5000 Hz.
-
--a 100 sets the amplitude to 100%.
-
--v enables verbose mode, which means the script will tell you what it's doing step by step.
-
---auto enables automatic parameter detection
-
-### Check the New Files
-After you run the command, the script creates two new files:
-
-##### output_file.c16: This is the main file you need.
-
-##### output_file.txt: This file has extra information like the sample rate and frequency.
+```bash
+python signal_converter.py [options] <input_file_or_directory>
 
 
-## Default Output:
+Examples:
 
-If the output folder is not specified, the converted files will be saved in the same location as the input files with the default naming convention.
+Convert a single .sub file with auto parameters:
 
-## Example Commands
-Here's an example of how to run the script:
+python signal_converter.py my_signal.sub --auto
+# Output: my_signal.c16, my_signal.txt
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Bash
+IGNORE_WHEN_COPYING_END
 
-Single File with Automatic Detection:
+Convert a .wav file, specifying output name and frequency:
 
-```sh
-python sdr_converter.py "input_file.sub" -o "output_file" --auto -v
-```
+python signal_converter.py input.wav -o output_iq -f 915000000
+# Output: output_iq.c16, output_iq.txt (SR detected from WAV)
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Bash
+IGNORE_WHEN_COPYING_END
 
-Folder of Files with Automatic Detection:
+Convert a raw .iq file (requires manual SR and Freq):
 
-```sh
-python sdr_converter.py "input_folder" -o "output_folder" --auto -v
-```
+python signal_converter.py data.iq -sr 2000000 -f 433920000
+# Output: data.c16, data.txt
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Bash
+IGNORE_WHEN_COPYING_END
 
-Single File with Manual Parameters:
+Convert all supported files in a directory, outputting to another directory:
 
-```sh
-python sdr_converter.py "input_file.sub" -o "output_file" -sr 500000 
-```
+python signal_converter.py ./input_signals/ -o ./output_c16_files/ --auto
+# Processes *.sub, *.wav, *.iq, *.bin in ./input_signals/
+# Outputs corresponding *.c16/*.txt files into ./output_c16_files/
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Bash
+IGNORE_WHEN_COPYING_END
 
-#### File Names with Spaces:
+## Command-Line Arguments:
 
-Ensure that file names with spaces are enclosed in quotes ("input folder").
+Argument	Description	Notes
+file	(Required) Path to the input file (.sub, .wav, .iq, .bin) or a directory containing such files.	
+-o, --output	Output base path/directory. If omitted, derived from input file/directory name.	For directory input, creates output dir if it doesn't exist.
+--auto	Attempt to auto-detect parameters (SR from WAV, Freq from SUB). Uses defaults if detection fails.	Convenient but may not be optimal for all signals.
+-sr, --sampling_rate	Sampling Rate (Hz) for the output .c16 file.	Required for .iq/.bin unless --auto. Overrides WAV SR.
+-f, --frequency	Center Frequency (Hz) for the output .txt metadata.	Overrides frequency from .sub file if set.
+-if, --intermediate_freq	Intermediate Frequency (Hz) used for synthesizing IQ data (ONLY for .sub files). Determines the tone frequency when the signal is 'ON'.	Ignored for .wav, .iq, .bin.
+-a, --amplitude	Amplitude percentage (1-100) used for synthesizing IQ data (ONLY for .sub files). Controls the maximum amplitude of the synthesized tone.	Ignored for .wav, .iq, .bin.
+-v, --verbose	Enable verbose DEBUG logging output.	Useful for troubleshooting.
+## Conversion Logic Details
 
-## Extra Info
+The script applies different logic based on the input file type:
 
-Sample Rate: This tells how many samples per second are used.
+.sub Files:
 
-Intermediate Frequency: This helps adjust the signal.
+Reads the positive/negative microsecond durations from RAW_Data.
 
-Amplitude: This tells how strong the signal is.
+Synthesizes an IQ signal representing On-Off Keying (OOK) or Amplitude-Shift Keying (ASK).
 
-Remove any comments from the top of the .sub files, such as "# generated with ook_to_sub.py", it will not see the protocol. Can handle large .sub files such as [CVS Chaos](https://github.com/jimilinuxguy/customer-assistance-buttons-sdr/blob/main/cvs/flipper_zero/CVS_Chaos.sub#L3C18-L3C28)
+A positive duration creates a sinusoidal tone (I/Q samples) at the specified intermediate_freq and amplitude for the calculated number of samples at the target sampling_rate.
+
+A negative duration creates zero-value (I=0, Q=0) samples for the calculated number of samples.
+
+Requires sampling_rate, intermediate_freq, and amplitude parameters (can be auto/default ). Uses frequency for metadata.
+
+.wav Files:
+
+Reads the 16-bit mono PCM samples.
+
+Treats the audio samples directly as the I (In-phase) component.
+
+Sets the Q (Quadrature) component to zero for all samples.
+
+Uses the Sampling Rate specified in the WAV header unless overridden by -sr.
+
+Requires frequency for metadata (user-specified or default). intermediate_freq and amplitude are ignored.
+
+.iq Files:
+
+Reads the raw interleaved int16 binary data.
+
+De-interleaves the data into separate I and Q streams.
+
+Re-interleaves the I and Q streams into the output .c16 format (effectively a pass-through of the sample data).
+
+Requires sampling_rate and frequency to be specified (via args or --auto) for the output metadata. intermediate_freq and amplitude are ignored.
+
+.bin Files:
+
+Reads the raw interleaved uint8 binary data.
+
+Converts each uint8 sample (range 0-255) to int16 (range approx -32k to +32k) using the formula: int16_sample = (uint8_sample - 128.0) * 256.0. This assumes the original signal was centered around 128.
+
+De-interleaves the resulting int16 data into separate I and Q streams.
+
+Re-interleaves the I and Q streams into the output .c16 format.
+
+Requires sampling_rate and frequency to be specified (via args or --auto) for the output metadata. intermediate_freq and amplitude are ignored.
+
+## Important Notes & Limitations
+
+WAV Format: Only supports Mono, 16-bit Signed Integer PCM .wav files. Other WAV formats (stereo, float, different bit depths) will cause errors.
+
+IQ/BIN Assumptions: Assumes raw IQ/BIN files contain interleaved samples (I, Q, I, Q...). .iq assumes int16 Little-Endian. .bin assumes uint8 centered around 128. If your raw file format differs, the script will misinterpret the data.
+
+No Resampling: The script does not perform any sample rate conversion. If you provide a -sr different from a .wav file's native rate, the output .c16 file will simply contain the original samples, but the metadata .txt will claim the rate specified by -sr, leading to incorrect playback speed/timing if used directly.
+
+Auto Parameter Limitations: The --auto feature uses defaults (like 1 MSps for SR, 433.92 MHz for Freq) if it cannot detect specific values. The intermediate_freq derived by --auto is a simple heuristic (like Freq / 100) and might not be optimal. Always verify parameters for critical applications.
+
+Contributing / Issues
+
+Feel free to open an issue on the repository for bug reports or feature requests. Pull requests are also welcome.
+
+License
+
+(Optional: Add license information here, e.g., MIT License)
+
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+IGNORE_WHEN_COPYING_END
 
 
 

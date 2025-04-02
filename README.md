@@ -1,4 +1,3 @@
-```markdown
 # Signal File Converter for HackRF PortaPack
 ### Convert `.sub`, `.wav`, `.iq`, `.bin` files into `.c16` format
 > ⚠️ *Actively developed — generally functional, but real-world testing & feedback are valuable!*

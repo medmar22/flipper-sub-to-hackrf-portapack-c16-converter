@@ -1,43 +1,50 @@
-# Signal File Converter for HackRF PortaPack  
-### Convert `.sub`, `.wav`, `.iq`, `.bin` files into `.c16` format  
-> ⚠️ *Currently under development — almost fully functional, needs real world testing!.*
+```markdown
+# Signal File Converter for HackRF PortaPack
+### Convert `.sub`, `.wav`, `.iq`, `.bin` files into `.c16` format
+> ⚠️ *Actively developed — generally functional, but real-world testing & feedback are valuable!*
 
 ---
 
 ## 🚀 Project Overview
 
-This tool converts a variety of signal formats into `.c16` files compatible with HackRF PortaPack, along with `.txt` metadata files. Originally a fork of broken code, this version was debugged and restructured using AI assistance and is actively being improved.
+This tool converts a variety of signal file formats into `.c16` files compatible with HackRF PortaPack, along with corresponding `.txt` metadata files. Initially developed by debugging and significantly enhancing earlier code with AI assistance, this script aims to provide a reliable conversion path for different signal representations.
 
-Supports conversion from Flipper Zero `.sub` files (RAW) and basic SDR formats including WAV, IQ, and BIN. The output is a HackRF-compatible `.c16` IQ stream and metadata file.
+Supports conversion from Flipper Zero `.sub` files (RAW protocol) and common SDR formats like WAV, IQ (int16), and BIN (uint8). The output is a standard HackRF-compatible `.c16` IQ data file and a metadata `.txt` file. **Includes optional sample rate conversion for WAV files.**
 
-> Created by: **RockGod**
+> Maintainer: **RockGod** (Enhancements based on earlier work and community needs)
 
 ---
 
 ## 🛠️ Features
 
-- **Multi-format Input Support**  
-  - `.sub` (Flipper Zero RAW SubGhz files)  
-  - `.wav` (Mono, 16-bit PCM audio files)  
-  - `.iq` (int16 interleaved IQ samples)  
+- **Multi-format Input Support**
+  - `.sub` (Flipper Zero RAW SubGhz files)
+  - `.wav` (Mono, 16-bit PCM audio files)
+  - `.iq` (int16 interleaved IQ samples)
   - `.bin` (uint8 interleaved IQ samples)
 
-- **Output Formats**  
-  - `.c16`: Little-endian interleaved `int16` IQ stream  
-  - `.txt`: Metadata file with sample rate and center frequency
+- **Output Formats**
+  - `.c16`: Little-endian interleaved `int16` IQ stream
+  - `.txt`: Metadata file with target sample rate and center frequency
 
-- **Customizable Parameters**  
-  - Sampling rate, center frequency, intermediate frequency, amplitude
+- **Sample Rate Conversion (Optional)**
+  - **NEW:** Automatically resamples `.wav` files if the target `-sr` differs from the source rate.
+  - Requires the `scipy` library to be installed.
+  - Can be disabled using the `--no-resample` flag.
 
-- **Auto-Detection**  
-  - Auto extracts sample rate from `.wav` headers  
-  - Auto uses defaults for `.sub` if needed
+- **Customizable Parameters**
+  - Target Sampling rate, center frequency, intermediate frequency (for `.sub`), amplitude (for `.sub`).
 
-- **Batch Processing**  
-  - Converts all supported files in a directory
+- **Auto-Detection**
+  - Extracts sample rate from `.wav` headers.
+  - Extracts frequency from `.sub` metadata (if present).
+  - Uses sensible defaults if detection fails or isn't applicable.
 
-- **Verbose Logging**  
-  - Enable debugging info for troubleshooting
+- **Batch Processing**
+  - Converts all supported files in a directory.
+
+- **Verbose Logging**
+  - Enable detailed debug information using `-v` for troubleshooting.
 
 ---
 
@@ -45,12 +52,17 @@ Supports conversion from Flipper Zero `.sub` files (RAW) and basic SDR formats i
 
 ### Requirements
 - **Python 3.6+**
-- **Dependencies:**  
-```bash
-pip install numpy
-```
+- **NumPy:**
+  ```bash
+  pip install numpy
+  ```
+- **SciPy (Optional - for WAV resampling):**
+  ```bash
+  pip install scipy
+  ```
+  > Resampling will be automatically disabled if SciPy is not found.
 
-> Other libraries used: `os`, `argparse`, `math`, `wave`, `logging`, `sys`, `typing` — all standard.
+> Other libraries used: `os`, `argparse`, `math`, `wave`, `logging`, `sys`, `typing` — all usually included with Python.
 
 ---
 
@@ -66,94 +78,115 @@ python signal_converter.py [options] <input_file_or_directory>
 ```bash
 # Convert a single .sub file with auto parameters
 python signal_converter.py my_signal.sub --auto
-```
 
-```bash
-# Convert a .wav file and specify frequency
-python signal_converter.py input.wav -o output_iq -f 915000000
-```
+# Convert a .wav file recorded at 48kHz to 1MHz C16, specifying frequency
+# (Requires SciPy for resampling to occur)
+python signal_converter.py input_48k.wav -o output_1M -sr 1000000 -f 915000000
 
-```bash
+# Convert a .wav file but prevent automatic resampling even if rates differ
+python signal_converter.py input_48k.wav -sr 96000 --no-resample
+
 # Convert raw .iq file (manual SR/freq required)
 python signal_converter.py data.iq -sr 2000000 -f 433920000
-```
 
-```bash
-# Convert all supported files in a folder
-python signal_converter.py ./input/ -o ./output/ --auto
+# Convert all supported files in a folder, outputting to ./output/
+python signal_converter.py ./input_signals/ -o ./output/ --auto
 ```
 
 ---
 
 ## ⚙️ Command-Line Arguments
 
-| Argument               | Description                                                                 |
-|------------------------|-----------------------------------------------------------------------------|
-| `file`                 | (Required) Input file path or directory containing `.sub`, `.wav`, `.iq`, or `.bin`. |
-| `-o`, `--output`       | Output path or directory. Auto-derived if omitted.                          |
-| `--auto`               | Auto-detect sample rate and frequency (uses defaults if not found).         |
-| `-sr`, `--sampling_rate` | Sample rate in Hz. Required for `.iq` and `.bin`. Overrides `.wav` rate.     |
-| `-f`, `--frequency`    | Center frequency in Hz. Overrides `.sub` file frequency if provided.        |
-| `-if`, `--intermediate_freq` | Intermediate frequency for tone generation (only for `.sub`).              |
-| `-a`, `--amplitude`    | Amplitude % (1–100) for `.sub` tone generation.                             |
-| `-v`, `--verbose`      | Enable debug logging.                                                       |
+| Argument                 | Description                                                                                     | Notes                                                             |
+| :----------------------- | :---------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- |
+| `file`                   | **(Required)** Input file path or directory (`.sub`, `.wav`, `.iq`, `.bin`).                       |                                                                   |
+| `-o`, `--output`         | Output base path/directory. Auto-derived if omitted.                                            |                                                                   |
+| `--auto`                 | Auto-detect SR (WAV) & Freq (SUB). Uses defaults if not found.                                    |                                                                   |
+| `-sr`, `--sampling_rate` | Target sample rate (Hz). Required for `.iq`/`.bin`. **Triggers resampling for `.wav` if different.** | See `--no-resample`.                                              |
+| `-f`, `--frequency`      | Target center frequency (Hz) for metadata. Overrides `.sub` file freq if set.                    |                                                                   |
+| `-if`, `--intermediate_freq`| Intermediate frequency (Hz) for `.sub` synthesis tone generation.                             | Only used for `.sub` files.                                       |
+| `-a`, `--amplitude`      | Amplitude % (1-100) for `.sub` synthesis tone generation.                                       | Only used for `.sub` files.                                       |
+| `--no-resample`          | **NEW:** Disable automatic resampling for `.wav` files, even if SciPy is available and rates differ. | Useful if you want mismatched SR metadata without changing samples. |
+| `-v`, `--verbose`        | Enable detailed debug logging output.                                                           |                                                                   |
 
 ---
 
 ## 🔍 Conversion Logic Details
 
 ### `.sub` Files
-- Converts pulse durations to IQ tones or silence.
-- Positive duration → tone at `intermediate_freq`
-- Negative duration → zero samples
-- Requires: `sampling_rate`, `intermediate_freq`, `amplitude`
+- Synthesizes IQ samples based on pulse durations.
+- Positive duration → sine wave tone at `intermediate_freq`.
+- Negative duration → zero samples (silence).
+- Uses the target `-sr`, `-if`, and `-a` parameters for generation.
 
-### `.wav` Files
-- Mono 16-bit PCM
-- Treats audio as I component; sets Q = 0
-- Uses WAV header sample rate unless overridden
+### `.wav` Files (Mono, 16-bit PCM)
+- Treats audio samples as the **I** component. Sets **Q** component to **0**.
+- **Resampling:** If the target `-sr` differs from the WAV header rate, and SciPy is installed, and `--no-resample` is **not** used, the samples are automatically resampled to the target rate.
+- If resampling doesn't occur, the original samples are used, but the metadata reflects the target `-sr` (potentially leading to timing mismatches if rates differ).
 
-### `.iq` Files
-- Interleaved `int16` IQ data
-- Rewrites as `.c16` format (pass-through)
-- Requires manual `-sr` and `-f`
+### `.iq` Files (Interleaved `int16`)
+- Reads raw samples, assuming (I, Q, I, Q...) order.
+- Performs a pass-through, writing the same sample data to the `.c16` file.
+- **Requires** user to specify the correct `-sr` and `-f` for the data. No resampling occurs.
 
-### `.bin` Files
-- Interleaved `uint8` IQ samples
-- Converts to `int16` centered at 0
-- Requires manual `-sr` and `-f`
+### `.bin` Files (Interleaved `uint8`)
+- Reads raw `uint8` samples (I, Q...).
+- Converts `uint8` (0-255) to `int16` (approx -32k to +32k), assuming centering around 128.
+- Writes the converted `int16` data to the `.c16` file.
+- **Requires** user to specify the correct `-sr` and `-f` for the data. No resampling occurs.
 
 ---
 
 ## ⚠️ Notes & Limitations
 
-- ✅ Only **mono 16-bit WAV** supported.
-- ❌ No sample rate conversion (SR mismatches lead to incorrect timing).
-- ⚙️ Raw file assumptions:
-  - `.iq`: Interleaved `int16` (I, Q), little-endian
-  - `.bin`: Interleaved `uint8` centered at 128
-- 🔍 Auto parameters use fallback values:
-  - Sample Rate: `1000000`
-  - Frequency: `433920000 Hz`
-  - Intermediate Freq: `Freq / 100`
+- ✅ Only **Mono, 16-bit Signed Integer PCM** `.wav` files supported for conversion.
+- ✅ Resampling capability for `.wav` requires the **`scipy`** library to be installed.
+- ⚙️ Raw file assumptions: `.iq` (interleaved `int16`, Little-Endian), `.bin` (interleaved `uint8` centered at 128). Incorrect formats will yield garbage data.
+- 🔍 `--auto` parameters use fallback default values if detection fails (e.g., SR: 1 MHz, Freq: 433.92 MHz). Always verify parameters for critical signals.
 
 ---
 
 ## 📬 Contributing
 
-Pull requests welcome! If you’ve fixed a bug, added a feature, or improved the logic — feel free to submit a PR or open an issue.
+Pull requests are welcome! If you encounter bugs, have feature ideas, improve the documentation, or optimize the code, feel free to open an issue or submit a PR.
 
 ---
 
 ## 📜 License
 
-> Add your preferred license here (e.g. MIT, Apache 2.0)
+> Suggestion: Use MIT License if unsure, or specify your preference.
+```
+MIT License
+
+Copyright (c) [Year] [Your Name/GitHub Handle - RockGod]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ---
 
-## 🧠 Credit
+## 🧠 Credit & Inspiration
 
 Inspired by the JS version: [rascafr/sub-to-c16](https://github.com/rascafr/sub-to-c16)  
-Thanks to [RocketGod](https://github.com/RocketGod-git) for the original python script and all their HackRF content.
+Greatly thankful to [RocketGod](https://github.com/RocketGod-git) for the initial Python script foundation and their valuable contributions to the HackRF community.
 
+*(Consider keeping or removing the banner based on preference)*
 ![RocketGod Banner](https://github.com/RocketGod-git/flipper-sub-to-hackrf-portapack-c16-converter/assets/57732082/acaadb30-214c-4b42-b893-33de68230083)
+
+```

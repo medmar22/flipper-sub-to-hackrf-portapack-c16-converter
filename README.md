@@ -49,9 +49,9 @@ The primary goal is to take signal data, which might be represented as timing du
 
 ```bash
 python signal_converter.py [options] <input_file_or_directory>
+```
 
-
-Examples:
+# Examples:
 
 Convert a single .sub file with auto parameters:
 

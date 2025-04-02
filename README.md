@@ -154,6 +154,6 @@ Pull requests welcome! If you’ve fixed a bug, added a feature, or improved the
 ## 🧠 Credit
 
 Inspired by the JS version: [rascafr/sub-to-c16](https://github.com/rascafr/sub-to-c16)  
-Thanks to [RocketGod](https://github.com/RocketGod-git) for the original `.sub` signal files and HackRF content.
+Thanks to [RocketGod](https://github.com/RocketGod-git) for the original python script and all their HackRF content.
 
 ![RocketGod Banner](https://github.com/RocketGod-git/flipper-sub-to-hackrf-portapack-c16-converter/assets/57732082/acaadb30-214c-4b42-b893-33de68230083)
